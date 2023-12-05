@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', function () {
 		willReadFrequently: true,
 	});
 	let array;
+	let arrayData;
 	
 	function changeInput() {
 		let image = new Image();
@@ -14,7 +15,8 @@ document.addEventListener('DOMContentLoaded', function () {
 		image.onerror = () => {
 			console.log('Error loading')
 		};
-		image.src = URL.createObjectURL(this.files[0]);
+		if (this.files[0])
+			image.src = URL.createObjectURL(this.files[0]);
 	}
 	
 	function draw() {
@@ -24,6 +26,11 @@ document.addEventListener('DOMContentLoaded', function () {
 		canvas.width = 390;
 		canvas.height = this.height * 390 / this.width;
 		ctx.drawImage(this, 0, 0, canvas.width, canvas.height);
+		
+		console.time('Execution Time');
+		arrayData = loadImageToArray(ctx.getImageData(0, 0, 390, canvas.height));
+		console.timeEnd('Execution Time');
+		
 		array = [];
 		for (let i = 0; i <= canvas.width; i++) {
 			array[i] = [];
@@ -31,6 +38,30 @@ document.addEventListener('DOMContentLoaded', function () {
 			array[i][j] = 0;
 		}
 	}
+	
+	let loadImageToArray = (imageData) => {
+		let array = [];
+		let index = imageData.width * 4;
+		let startIndex = 0;
+		let endIndex = index;
+		for (let i = 0; i < imageData.height; i++) {
+			array[i] = [];
+			let tmpArray = imageData.data.subarray(startIndex, endIndex);
+			let tmpIndex = 0;
+			for (let j = 0; j < tmpArray.length; j += 4) {
+				array[i][tmpIndex] = tmpArray.subarray(j, j + 4);
+				tmpIndex++;
+			}
+			startIndex = endIndex;
+			endIndex += index;
+		}
+		return array;
+	};
+	
+	let toImageData = (array, width, height) => {
+		let imageData = new ImageData(width, height);
+		
+	};
 	
 	function GCD(a, b) {
 		while (true) {
@@ -56,10 +87,14 @@ document.addEventListener('DOMContentLoaded', function () {
 		let target = event.currentTarget
 		let shiftX = ~~(event.clientX - target.getBoundingClientRect().left);
 		let shiftY = ~~(event.clientY - target.getBoundingClientRect().top);
+		
+		console.log({x: shiftX, y: shiftY});
+		
 		let pixel = ctx.getImageData(shiftX, shiftY, 1, 1);
+		console.log(pixel);
 		let fillColor = ctx.getImageData(shiftX, shiftY, 1, 1);
 		console.time('Execution Time');
-		fillXOR(shiftX, shiftY, pixel, fillColor);
+		// fillXOR(shiftX, shiftY, pixel, fillColor);
 		console.timeEnd('Execution Time');
 	}
 	
