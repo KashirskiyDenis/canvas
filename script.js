@@ -6,7 +6,7 @@ document.addEventListener('DOMContentLoaded', function () {
 	let ctx = canvas.getContext('2d', {
 		willReadFrequently: true,
 	});
-	let array;
+	let arrayChecked;
 	let arrayData;
 	
 	function changeInput() {
@@ -20,47 +20,69 @@ document.addEventListener('DOMContentLoaded', function () {
 	}
 	
 	function draw() {
-		let gcd = GCD(this.width, this.height);
-		// canvas.width = this.width / gcd * 390;
-		// canvas.height = this.height / gcd * 390;
 		canvas.width = 390;
 		canvas.height = this.height * 390 / this.width;
 		ctx.drawImage(this, 0, 0, canvas.width, canvas.height);
 		
-		console.time('Execution Time');
-		arrayData = loadImageToArray(ctx.getImageData(0, 0, 390, canvas.height));
-		console.timeEnd('Execution Time');
-		
-		array = [];
-		for (let i = 0; i <= canvas.width; i++) {
-			array[i] = [];
-			for (let j = 0; j <= canvas.height; j++)
-			array[i][j] = 0;
-		}
+		console.time('loadImageDataTo2DArray');
+		arrayData = loadImageDataTo2DArray(ctx.getImageData(0, 0, 390, canvas.height));
+		console.timeEnd('loadImageDataTo2DArray');
+
+		checkArray(arrayData, canvas.width, canvas.height);
+
+		clearArrayChecked();
 	}
 	
-	let loadImageToArray = (imageData) => {
-		let array = [];
-		let index = imageData.width * 4;
-		let startIndex = 0;
-		let endIndex = index;
-		for (let i = 0; i < imageData.height; i++) {
-			array[i] = [];
-			let tmpArray = imageData.data.subarray(startIndex, endIndex);
-			let tmpIndex = 0;
-			for (let j = 0; j < tmpArray.length; j += 4) {
-				array[i][tmpIndex] = tmpArray.subarray(j, j + 4);
-				tmpIndex++;
+	let clearArrayChecked = () => {
+		arrayChecked = [];
+		for (let i = 0; i <= canvas.width; i++) {
+			arrayChecked[i] = [];
+			for (let j = 0; j <= canvas.height; j++)
+				arrayChecked[i][j] = 0;
+		}		
+	};
+	
+	let checkArray = (array, width, height) => {
+		for (let i = 0; i < height; i++) {
+			for (let j = 0; j < width; j++) {
+				if (array[i][j].length != 4) {
+					console.log({i: i, j: j});
+					return;
+				}
 			}
-			startIndex = endIndex;
-			endIndex += index;
+		}
+	};
+	
+	let loadImageDataTo2DArray = (imageData) => {
+		let { width, height, data } = imageData;
+		let array = [];
+		let dataIndex = 0;
+		
+		for (let i = 0; i < height; i++) {
+			array[i] = [];
+			let rowIndex = 0;
+			for (let j = 0; j < width; j++) {
+				array[i][rowIndex] = data.subarray(dataIndex, dataIndex + 4);
+				rowIndex++;
+				dataIndex += 4;
+			}
 		}
 		return array;
 	};
 	
 	let toImageData = (array, width, height) => {
 		let imageData = new ImageData(width, height);
-		
+		let index = 0;
+		for (let i = 0; i < height; i++) {
+			for (let j = 0; j < width; j++) {
+				imageData.data[index] = array[i][j][0];
+				imageData.data[index + 1] = array[i][j][1];
+				imageData.data[index + 2] = array[i][j][2];
+				imageData.data[index + 3] = array[i][j][3];
+				index += 4;
+			}
+		}		
+		return imageData;
 	};
 	
 	function GCD(a, b) {
@@ -88,22 +110,28 @@ document.addEventListener('DOMContentLoaded', function () {
 		let shiftX = ~~(event.clientX - target.getBoundingClientRect().left);
 		let shiftY = ~~(event.clientY - target.getBoundingClientRect().top);
 		
-		console.log({x: shiftX, y: shiftY});
-		
+		// console.log({x: shiftX, y: shiftY});
+
 		let pixel = ctx.getImageData(shiftX, shiftY, 1, 1);
-		console.log(pixel);
-		let fillColor = ctx.getImageData(shiftX, shiftY, 1, 1);
-		console.time('Execution Time');
-		// fillXOR(shiftX, shiftY, pixel, fillColor);
-		console.timeEnd('Execution Time');
+			
+		// console.time('fillXORCanvas');
+		// fillXORCanvas(shiftX, shiftY, pixel, canvas.width, canvas.height);
+		// fillXORCanvas(0, 0, pixel, canvas.width, canvas.height);
+		// console.timeEnd('fillXORCanvas');
+		
+		console.time('fillXORArray');
+		fillXORArray(shiftY, shiftX, pixel, canvas.width, canvas.height);
+		// fillXORArray(0, 0, pixel, canvas.width, canvas.height);
+		let imageData = toImageData(arrayData, canvas.width, canvas.height);
+		ctx.putImageData(imageData, 0, 0);
+		console.timeEnd('fillXORArray');
+
+		clearArrayChecked();
 	}
 	
-	function fillXOR(x, y, fg, fc) {
-		fc.data[0] = 0;
-		fc.data[1] = 255;
-		fc.data[2] = 0;
-		fc.data[3] = 255; 
-		
+	function fillXORCanvas(x, y, fg, width, height) {
+		const dataArray = new Uint8ClampedArray([0, 255, 0, 255])
+		const fillColor = new ImageData(dataArray, 1, 1);
 		const neighbors = [
 			{ dx: 0, dy: -1 },
 			{ dx: 0, dy: 1 },
@@ -112,29 +140,62 @@ document.addEventListener('DOMContentLoaded', function () {
 		];
 		
 		let stack = [{ x, y }];
-		array[x][y] = 1;
+		arrayChecked[x][y] = 1;
 		
 		while (stack.length) {
 			let { x: currentX, y: currentY } = stack.pop();
-			ctx.putImageData(fc, currentX, currentY);
-		
+			ctx.putImageData(fillColor, currentX, currentY);
+			
 			for (let neighbor of neighbors) {
 				let newX = currentX + neighbor.dx;
 				let newY = currentY + neighbor.dy;
 				
 				if (
 					newX >= 0 && newY >= 0 &&
-					newX < canvas.width && newY < canvas.height &&
-					array[newX][newY] !== 1 &&
+					newX < width && newY < height &&
+					arrayChecked[newX][newY] !== 1 &&
 					compare(ctx.getImageData(newX, newY, 1, 1).data, fg.data)
 					) {
 					stack.push({ x: newX, y: newY });
-					array[newX][newY] = 1;
+					arrayChecked[newX][newY] = 1;
 				}
 			}
 		}
 	}
-
+	
+	function fillXORArray(x, y, fg, width, height) {
+		const fillColor = new Uint8ClampedArray([0, 0, 255, 255]);
+		const neighbors = [
+			{ dx: 0, dy: -1 },
+			{ dx: 0, dy: 1 },
+			{ dx: -1, dy: 0 },
+			{ dx: 1, dy: 0 }
+		];
+		
+		let stack = [{ x, y }];
+		arrayChecked[x][y] = 1;
+		
+		while (stack.length) {
+			let { x: currentX, y: currentY } = stack.pop();
+			arrayData[currentX][currentY].set(fillColor);
+			
+			for (let neighbor of neighbors) {
+				let newX = currentX + neighbor.dx;
+				let newY = currentY + neighbor.dy;
+				
+				if (
+					newX >= 0 && newY >= 0 &&
+					newX < width && newY < height &&
+					arrayChecked[newX][newY] !== 1 &&
+					compare(arrayData[newX][newY], fg.data)
+					) {
+					stack.push({ x: newX, y: newY });
+					arrayChecked[newX][newY] = 1;
+				}
+			}
+		}
+	}
+	
 	inputImage.addEventListener('change', changeInput);
 	canvas.addEventListener('click', getCanvasColor);
 });	
