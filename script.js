@@ -8,6 +8,7 @@ document.addEventListener('DOMContentLoaded', function () {
 	});
 	let arrayChecked;
 	let arrayData;
+	let imageData;
 	
 	function changeInput() {
 		let image = new Image();
@@ -15,8 +16,9 @@ document.addEventListener('DOMContentLoaded', function () {
 		image.onerror = () => {
 			console.log('Error loading')
 		};
-		if (this.files[0])
+		if (this.files[0]) {
 			image.src = URL.createObjectURL(this.files[0]);
+		}
 	}
 	
 	function draw() {
@@ -24,12 +26,11 @@ document.addEventListener('DOMContentLoaded', function () {
 		canvas.height = this.height * 390 / this.width;
 		ctx.drawImage(this, 0, 0, canvas.width, canvas.height);
 		
-		console.time('loadImageDataTo2DArray');
-		arrayData = loadImageDataTo2DArray(ctx.getImageData(0, 0, 390, canvas.height));
-		console.timeEnd('loadImageDataTo2DArray');
+		console.time('to2DArray');
+		to2DArray(ctx.getImageData(0, 0, canvas.width, canvas.height));
+		console.timeEnd('to2DArray');
 
 		checkArray(arrayData, canvas.width, canvas.height);
-
 		clearArrayChecked();
 	}
 	
@@ -53,25 +54,23 @@ document.addEventListener('DOMContentLoaded', function () {
 		}
 	};
 	
-	let loadImageDataTo2DArray = (imageData) => {
+	let to2DArray = (imageData) => {
 		let { width, height, data } = imageData;
-		let array = [];
+		arrayData = [];
 		let dataIndex = 0;
 		
 		for (let i = 0; i < height; i++) {
-			array[i] = [];
-			let rowIndex = 0;
+			let row = [];
 			for (let j = 0; j < width; j++) {
-				array[i][rowIndex] = data.subarray(dataIndex, dataIndex + 4);
-				rowIndex++;
+				row[j] = data.subarray(dataIndex, dataIndex + 4);
 				dataIndex += 4;
 			}
+			arrayData[i] = row;
 		}
-		return array;
 	};
 	
 	let toImageData = (array, width, height) => {
-		let imageData = new ImageData(width, height);
+		imageData = new ImageData(width, height);
 		let index = 0;
 		for (let i = 0; i < height; i++) {
 			for (let j = 0; j < width; j++) {
@@ -82,7 +81,6 @@ document.addEventListener('DOMContentLoaded', function () {
 				index += 4;
 			}
 		}		
-		return imageData;
 	};
 	
 	function GCD(a, b) {
@@ -120,9 +118,9 @@ document.addEventListener('DOMContentLoaded', function () {
 		// console.timeEnd('fillXORCanvas');
 		
 		console.time('fillXORArray');
-		fillXORArray(shiftY, shiftX, pixel, canvas.width, canvas.height);
+		fillXORArray(shiftX, shiftY, pixel, canvas.width, canvas.height);
 		// fillXORArray(0, 0, pixel, canvas.width, canvas.height);
-		let imageData = toImageData(arrayData, canvas.width, canvas.height);
+		toImageData(arrayData, canvas.width, canvas.height);
 		ctx.putImageData(imageData, 0, 0);
 		console.timeEnd('fillXORArray');
 
@@ -164,7 +162,7 @@ document.addEventListener('DOMContentLoaded', function () {
 	}
 	
 	function fillXORArray(x, y, fg, width, height) {
-		const fillColor = new Uint8ClampedArray([0, 0, 255, 255]);
+		const fillColor = new Uint8ClampedArray([0, 255, 0, 255]);
 		const neighbors = [
 			{ dx: 0, dy: -1 },
 			{ dx: 0, dy: 1 },
@@ -177,17 +175,16 @@ document.addEventListener('DOMContentLoaded', function () {
 		
 		while (stack.length) {
 			let { x: currentX, y: currentY } = stack.pop();
-			arrayData[currentX][currentY].set(fillColor);
+			arrayData[currentY][currentX].set(fillColor);
 			
 			for (let neighbor of neighbors) {
 				let newX = currentX + neighbor.dx;
 				let newY = currentY + neighbor.dy;
 				
-				if (
-					newX >= 0 && newY >= 0 &&
+				if (newX >= 0 && newY >= 0 &&
 					newX < width && newY < height &&
 					arrayChecked[newX][newY] !== 1 &&
-					compare(arrayData[newX][newY], fg.data)
+					compare(arrayData[newY][newX], fg.data)
 					) {
 					stack.push({ x: newX, y: newY });
 					arrayChecked[newX][newY] = 1;

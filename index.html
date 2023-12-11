@@ -1,22 +1,24 @@
 <!DOCTYPE html>
 <html>
-	
 	<head>
 		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
 		<title>
 			Canvas editor
 		</title>
 		<script src="script.js"></script>
+		<style></style>
 		<link rel="stylesheet" href="style.css">
 	</head>
-	
 	<body>
-		<main>
-			<div id="container" class="container">
-				<input type="file" id="inputImage" accept="image/*" />
-				<canvas id="canvas" width="0" height="0"></canvas>
-			</div>
-		</main>
+		<div class="container">
+			<label for="inputImage">Выберите картинку</label>
+			<input type="file" id="inputImage" accept="image/*" />
+		</div>
+		<canvas id="canvas" width="0" height="0"></canvas>
+		<div class="container">
+			<label for="saveImage">Сохранить картинку</label>
+			<input type="button" id="saveImage"/>
+		</div>		
 	</body>
-	
 </html>

@@ -2,10 +2,19 @@ body {
     font-family: "Gill Sans", sans-serif;
     font-size: 20px;
     margin: 0px;
+	user-select: none;
 }
 .container {
-    height: 100vh;
+	background-color: #ffffff;
+	text-align: center;
+	padding: 10px;
+	color: #367dff;
 }
+#inputImage, #saveImage {
+	display: none;
+}
+/*
 canvas {
 	border: 1px solid #000000;
 }
+*/
