@@ -6,6 +6,27 @@ document.addEventListener('DOMContentLoaded', function () {
 	let ctx = canvas.getContext('2d', {
 		willReadFrequently: true,
 	});
+	document.getElementById('backgroundEraser').addEventListener('click', () => {
+		canvas.removeEventListener('pointerdown', tools[tool]);
+		canvas.addEventListener('pointerdown', eraser);
+		tool = 'bgEraser';
+	});
+	document.getElementById('magicEraser').addEventListener('click', () => {
+		canvas.removeEventListener('pointerdown', tools[tool]);
+		canvas.addEventListener('pointerdown', filling);
+		tool = 'filling';
+	});
+	
+	document.getElementById('saveImage').addEventListener('click', () => {
+		
+	});
+	
+	let tools = {
+		bgEraser : eraser,
+		filling : filling
+	};
+	
+	let tool = 'bgEraser';
 	let arrayChecked;
 	let arrayData;
 	let imageData;
@@ -29,7 +50,7 @@ document.addEventListener('DOMContentLoaded', function () {
 		console.time('to2DArray');
 		to2DArray(ctx.getImageData(0, 0, canvas.width, canvas.height));
 		console.timeEnd('to2DArray');
-
+		
 		checkArray(arrayData, canvas.width, canvas.height);
 		clearArrayChecked();
 	}
@@ -86,11 +107,11 @@ document.addEventListener('DOMContentLoaded', function () {
 	function GCD(a, b) {
 		while (true) {
 			if (a == b)
-				break;
+			break;
 			else if (a > b)
-				a = a - b;
+			a = a - b;
 			else 
-				b = b - a;
+			b = b - a;
 		}
 		return a;
 	}
@@ -103,15 +124,15 @@ document.addEventListener('DOMContentLoaded', function () {
 		return a < 25 ? true : false;	
 	}
 	
-	function getCanvasColor(event) {
+	function filling(event) {
 		let target = event.currentTarget
 		let shiftX = ~~(event.clientX - target.getBoundingClientRect().left);
 		let shiftY = ~~(event.clientY - target.getBoundingClientRect().top);
 		
 		// console.log({x: shiftX, y: shiftY});
-
+		
 		let pixel = ctx.getImageData(shiftX, shiftY, 1, 1);
-			
+		
 		// console.time('fillXORCanvas');
 		// fillXORCanvas(shiftX, shiftY, pixel, canvas.width, canvas.height);
 		// fillXORCanvas(0, 0, pixel, canvas.width, canvas.height);
@@ -122,8 +143,9 @@ document.addEventListener('DOMContentLoaded', function () {
 		// fillXORArray(0, 0, pixel, canvas.width, canvas.height);
 		toImageData(arrayData, canvas.width, canvas.height);
 		ctx.putImageData(imageData, 0, 0);
+		//console.log(atob(canvas.toDataURL().split(';base64,')[1]));
 		console.timeEnd('fillXORArray');
-
+		
 		clearArrayChecked();
 	}
 	
@@ -193,6 +215,38 @@ document.addEventListener('DOMContentLoaded', function () {
 		}
 	}
 	
+	function canvasMouseMove(event) {
+		let target = event.currentTarget;
+		let shiftX = ~~(event.clientX - target.getBoundingClientRect().left);
+		let shiftY = ~~(event.clientY - target.getBoundingClientRect().top);
+		
+		ctx.globalCompositeOperation = 'destination-out';
+		ctx.lineWidth = 10;
+		ctx.lineCap = 'round';
+		ctx.lineTo(shiftX, shiftY);
+		ctx.stroke();
+	}
+	
+	function cusorMove(event) {
+		let target = event.currentTarget;
+		let shiftX = ~~(event.clientX - target.getBoundingClientRect().left);
+		let shiftY = ~~(event.clientY - target.getBoundingClientRect().top);
+		
+		ctx.moveTo(shiftX, shiftY);
+	}
+	
+	function eraser(event) {
+		cusorMove(event);
+		
+		canvas.addEventListener('pointermove', canvasMouseMove);
+		canvas.addEventListener('pointerover', cusorMove);
+		
+		document.addEventListener('pointerup', () => {
+			canvas.removeEventListener('pointermove', canvasMouseMove);	
+			to2DArray(ctx.getImageData(0, 0, canvas.width, canvas.height));
+		});
+	}
+	
 	inputImage.addEventListener('change', changeInput);
-	canvas.addEventListener('click', getCanvasColor);
+	canvas.addEventListener('pointerdown', eraser);
 });	
